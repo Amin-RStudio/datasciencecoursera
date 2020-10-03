@@ -1,0 +1,101 @@
+---
+title: "Coursera Task"
+author: "I"
+date: "3 10 2020"
+output: html_document
+---
+
+## get started
+
+```{}
+library(caret)
+library(rio)
+training <- import("pml-training.csv")
+testing <- import("pml-testing.csv")
+```
+
+## checking length
+
+
+```{}
+dim(training)
+dim(testing)
+```
+
+##checking data structure 
+
+```{r}
+str(training)
+```
+
+##Removing NA´s for the next step
+```{r}
+training_without_na<- training[apply(training, 2, function(x) any(is.na(x))) == FALSE]
+```
+
+##Converting "classe" as factor variable 
+```{r}
+training_without_na$classe <- as.factor(training_without_na$classe)
+```
+
+#Feature Selection with boruta algorithm (Boruta goes well, if you want to use random forest later)
+```{r}
+#install.packages('Boruta')
+library(Boruta)
+
+```
+
+#relevant variables for model fitting
+```{r}
+Boruta_importand <- Boruta(data = training_without_na, classe ~., doTrace =  0)
+```
+
+#Get significant variables 
+```{r}
+boruta_signif <- getSelectedAttributes(Boruta_importand)
+print(boruta_signif)
+```
+
+# Variable Importance Scores
+```{r}
+imps <- attStats(Boruta_importand)
+imps2 = imps[imps$decision != 'Rejected', c('meanImp', 'decision')]
+head(imps2[order(-imps2$meanImp), ])  # descending sort
+```
+
+# Plot variable importance
+```{r}
+plot(Boruta_importand, cex.axis=.7, las=2, xlab="", main="Variable Importance") 
+```
+
+#model building with most important variables
+```{r}
+modFit <- train(classe ~ raw_timestamp_part_1 + cvtd_timestamp + roll_belt + yaw_belt + pitch_belt,
+                method = "rf", 
+                data =  training_without_na)
+```
+
+#predict test set
+```{r}
+predtest <- predict(modFit, testing)
+```
+
+#Results: B A B A A E D B A A B C B A E E A B B B
+
+#Accuracy
+```{r}
+summary(modFit) #Accuracy by mtry = 23 0.9975094
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
